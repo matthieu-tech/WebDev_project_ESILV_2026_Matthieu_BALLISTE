@@ -1,4 +1,10 @@
 <script setup>
+import { onMounted } from 'vue'
+
+// Pré-chauffe le serveur Render dès l'ouverture du site
+onMounted(() => {
+  fetch((import.meta.env.VITE_API_URL || '') + '/', { credentials: 'include' }).catch(() => {})
+})
 </script>
 
 <template>
