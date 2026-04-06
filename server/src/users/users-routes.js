@@ -1,26 +1,40 @@
-// import User from './user-schema.js' // À décommenter lors de l'implémentation des routes
+import User from './user-schema.js'
 
 /**
  *
  * @param {import('fastify').FastifyInstance} app
  */
 function usersRoutes(app) {
-  app.get('/verify-email', async (request, _reply) => {
+  app.get('/verify-email', async (request, reply) => {
     // Récupérer le token de validation depuis la querystring de la requête
     const { token } = request.query
 
-    // TODO: Valider la présence du token
+    // Valider la présence du token
+    if (!token) {
+      return reply.status(400).send({ error: 'Token de validation requis' })
+    }
 
-    // TODO: Rechercher l'utilisateur correspondant au token de validation
-    // tip: https://mongoosejs.com/docs/queries.html
-    // const user =
+    // Rechercher l'utilisateur correspondant au token de validation
+    const user = await User.findOne({ validationToken: token })
 
-    // TODO: gérer le cas où le token est invalide ou expiré
+    // Gérer le cas où le token est invalide
+    if (!user) {
+      return reply.status(400).send({ error: 'Token de validation invalide' })
+    }
 
-    // TODO: vérifier si l'utilisateur a déjà validé son email
+    // Vérifier si l'utilisateur a déjà validé son email
+    if (user.emailVerified) {
+      return reply.status(409).send({ error: 'Adresse email déjà validée' })
+    }
 
-    // TODO: marquer l'email de l'utilisateur comme vérifié et supprimer le token de validation
-    // TODO: sauvegarder les modifications de l'utilisateur dans la base de données
+    // Marquer l'email comme vérifié et supprimer le token de validation
+    user.emailVerified = true
+    user.validationToken = null
+
+    // Sauvegarder les modifications dans la base de données
+    await user.save()
+
+    return reply.send({ message: 'Adresse email validée avec succès' })
   })
 
   app.get('/me', {
@@ -29,31 +43,57 @@ function usersRoutes(app) {
     return reply.send({ user: request.currentUser })
   })
 
-  // TODO: protéger aussi les routes suivantes pour qu'elles soient accessibles uniquement aux utilisateurs authentifiés (et éventuellement avec des rôles spécifiques)
-  app.get('/', async (request, reply) => {
-    // TODO: Implémenter la logique pour récupérer les utilisateurs depuis la base de données
-    // tip: https://mongoosejs.com/docs/queries.html
-    // TODO: Implémenter la pagination, les filtres, etc.
-    // tips: https://mongoosejs.com/docs/api/query.html#Query.prototype.sort()
-    //       https://mongoosejs.com/docs/api/query.html#Query.prototype.skip()
-    //       https://mongoosejs.com/docs/api/query.html#Query.prototype.limit()
-    return reply.send({ message: 'List of users' })
+  // Routes réservées aux administrateurs
+  app.get('/', {
+    onRequest: [app.requireAdmin],
+  }, async (request, reply) => {
+    // Pagination via query params ?page=1&limit=20
+    const page = Math.max(1, parseInt(request.query.page) || 1)
+    const limit = Math.min(100, Math.max(1, parseInt(request.query.limit) || 20))
+    const skip = (page - 1) * limit
+
+    const [users, total] = await Promise.all([
+      User.find()
+        .select('-passwordHash -validationToken')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      User.countDocuments(),
+    ])
+
+    return reply.send({ users, total, page, limit })
   })
 
-  app.get('/:id', async (request, reply) => {
-    // Récupérer l'ID de l'utilisateur depuis les paramètres de la route
-    const { id } = request.params // Attention: les params sont toujours des strings, même si l'ID est un ObjectId dans MongoDB
-    // TODO: Implémenter la logique pour récupérer un utilisateur par ID depuis la base de données
-    // tip: https://mongoosejs.com/docs/queries.html
-    // TODO: gérer le cas où l'utilisateur n'existe pas
-    return reply.send({ message: `User with ID ${user._id}` })
-  })
-
-  app.delete('/:id', async (request, reply) => {
-    // Récupérer l'ID de l'utilisateur depuis les paramètres de la route
+  app.get('/:id', {
+    onRequest: [app.requireAdmin],
+  }, async (request, reply) => {
+    // Attention: les params sont toujours des strings, même si l'ID est un ObjectId dans MongoDB
     const { id } = request.params
-    // TODO: Implémenter la logique pour supprimer un utilisateur par ID depuis la base de données
-    // tip: https://mongoosejs.com/docs/queries.html
+
+    const user = await User.findById(id)
+      .select('-passwordHash -validationToken')
+      .lean()
+
+    if (!user) {
+      return reply.status(404).send({ error: 'Utilisateur introuvable' })
+    }
+
+    return reply.send({ user })
+  })
+
+  app.delete('/:id', {
+    onRequest: [app.requireAdmin],
+  }, async (request, reply) => {
+    const { id } = request.params
+
+    const user = await User.findByIdAndDelete(id)
+
+    if (!user) {
+      return reply.status(404).send({ error: 'Utilisateur introuvable' })
+    }
+
+    return reply.status(204).send()
   })
 }
 

@@ -29,11 +29,33 @@ async function authPlugin(fastify) {
     }
 
     const user = await User.findById(request.user.sub)
-      .select('_id email username emailVerified createdAt updatedAt')
+      .select('_id email username emailVerified role createdAt updatedAt')
       .lean()
 
     if (!user) {
       return reply.status(401).send({ error: 'Utilisateur introuvable' })
+    }
+
+    request.currentUser = user
+  })
+
+  fastify.decorate('requireAdmin', async (request, reply) => {
+    try {
+      await request.jwtVerify({ onlyCookie: true })
+    } catch {
+      return reply.status(401).send({ error: 'Authentification requise' })
+    }
+
+    const user = await User.findById(request.user.sub)
+      .select('_id email username emailVerified role createdAt updatedAt')
+      .lean()
+
+    if (!user) {
+      return reply.status(401).send({ error: 'Utilisateur introuvable' })
+    }
+
+    if (user.role !== 'admin') {
+      return reply.status(403).send({ error: 'Accès réservé aux administrateurs' })
     }
 
     request.currentUser = user

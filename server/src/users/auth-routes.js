@@ -191,7 +191,7 @@ function authRoutes(app) {
       email: user.email,
       username: user.username,
     }, {
-      expiresIn: '300s',
+      expiresIn: '30m',
     })
 
     // ...et le stocker dans un cookie sécurisé
@@ -203,6 +203,11 @@ function authRoutes(app) {
     })
 
     return reply.send({ message: 'Authentification réussie' })
+  })
+
+  app.post('/logout', async (request, reply) => {
+    reply.clearCookie(config.jwt.cookieName, { path: '/' })
+    return reply.send({ message: 'Déconnexion réussie' })
   })
 }
 
