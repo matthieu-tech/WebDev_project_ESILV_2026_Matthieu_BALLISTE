@@ -76,21 +76,13 @@ function authRoutes(app) {
       username: `${username}-${validationToken.slice(0, 6)}`,
       passwordHash,
       validationToken,
+      emailVerified: config.env === 'production',
     })
 
-    try {
-      await sendVerificationEmail(app, normalizedEmail, validationToken)
-    } catch (error) {
-      app.log.error({
-        err: error,
-        email: normalizedEmail,
-      }, 'Failed to send registration email')
-
-      return reply.status(503).send(withVerificationDebugData({
-        error: 'Compte créé, mais l\'email de validation n\'a pas pu être envoyé. Réessayez plus tard.',
-        email: user.email,
-      }, validationToken))
-    }
+    // Envoi email non-bloquant pour ne pas retarder la réponse
+    sendVerificationEmail(app, normalizedEmail, validationToken).catch(error => {
+      app.log.error({ err: error, email: normalizedEmail }, 'Failed to send registration email')
+    })
 
     return reply.status(201).send(withVerificationDebugData({
       message: 'Utilisateur créé avec succès. Veuillez vérifier votre email pour confirmer votre compte.',
@@ -198,7 +190,7 @@ function authRoutes(app) {
     reply.setCookie(config.jwt.cookieName, token, {
       path: '/',
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: config.env === 'production' ? 'none' : 'lax',
       secure: config.env === 'production',
     })
 
@@ -206,7 +198,11 @@ function authRoutes(app) {
   })
 
   app.post('/logout', async (request, reply) => {
-    reply.clearCookie(config.jwt.cookieName, { path: '/' })
+    reply.clearCookie(config.jwt.cookieName, {
+      path: '/',
+      sameSite: config.env === 'production' ? 'none' : 'lax',
+      secure: config.env === 'production',
+    })
     return reply.send({ message: 'Déconnexion réussie' })
   })
 }
