@@ -24,7 +24,7 @@
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
 
 # Thumbnails
 ._*
@@ -218,4 +218,17 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/linux,macos,node,windows
 
 # Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
+
+# Fichiers d'environnement locaux (à créer à partir de .env-example)
+server/.env.development.local
+server/.env.production.local
+server/.env.local
+client/.env.local
+client/.env.production.local
+
+# Build frontend
+client/dist/
+
+# Vite cache
+client/.vite/
 

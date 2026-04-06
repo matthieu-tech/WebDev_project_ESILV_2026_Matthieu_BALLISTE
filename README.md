@@ -1,176 +1,112 @@
-# WebDev ESILV Starter
+# CryptoFolio — Gestionnaire de portefeuille crypto
 
-Starter de projet pour les étudiants de 4e année FinTech.
+Projet de fin d'année réalisé dans le cadre du cours de développement web à l'ESILV (4A FinTech). L'idée était de créer une application web complète autour de la gestion de cryptomonnaies : suivre ses investissements, voir les performances en temps réel, et rester informé des dernières actus.
 
-Le dépôt est volontairement incomplet : il fournit une base de travail, une structure de monorepo, un front et un back séparés, mais il reste du travail d’implémentation. Le minimum attendu est d’implémenter tout ce qui est indiqué dans les `TODO` du projet.
+## Ce que fait l'appli
 
-## Architecture
+- **Authentification** complète avec JWT (inscription, connexion, déconnexion, vérification email)
+- **Gestion de portefeuilles** : jusqu'à 5 portefeuilles par utilisateur
+- **Positions** : ajout de cryptos avec recherche autocomplete via CoinGecko, prix d'achat, quantité, date
+- **Calcul des gains/pertes** depuis l'ouverture de chaque position, basé sur le prix actuel du marché
+- **Camembert** de répartition du portefeuille (regroupement par crypto)
+- **Dashboard** avec indicateurs globaux et tableau des marchés avec graphiques sparkline 7j
+- **Actus crypto** depuis Cryptoast et Journal du Coin (flux RSS proxysés côté backend)
+- **Mode sombre / clair** persisté en localStorage
+- **Rôles** : utilisateur et administrateur
 
-Ce projet suit une architecture de monorepo :
+## Stack
 
-- `client/` contient l’application front-end
-- `server/` contient l’application back-end
-- `package.json` à la racine déclare les workspaces npm
-- `turbo.json` configure Turborepo pour orchestrer les scripts du monorepo
+- **Frontend** : Vue.js 3, Vite, Pinia, Vue Router, Space Grotesk
+- **Backend** : Fastify, Mongoose, Node.js
+- **Base de données** : MongoDB (Docker en local, Atlas en prod)
+- **Auth** : JWT en cookie httpOnly, 30 min d'expiration
+- **APIs** : CoinGecko (prix, marchés, recherche), RSS Cryptoast & JDC (actus)
 
-### Monorepo
+## Installation en local
 
-Le dépôt utilise les [**npm workspaces**](https://docs.npmjs.com/cli/v7/using-npm/workspaces?v=true) pour gérer plusieurs applications dans un seul repository. Cela permet notamment :
+### Prérequis
 
-- d’installer les dépendances depuis la racine
-- de lancer les scripts des sous-projets depuis un point central
-- de garder une structure claire entre front et back
+- Node.js 18+
+- Docker & Docker Compose
 
-### Workspaces npm
-
-Les workspaces déclarés à la racine sont :
-
-- `client`
-- `server`
-
-Les dépendances de chaque application restent isolées dans leur propre [`package.json`](https://docs.npmjs.com/cli/v11/configuring-npm/package-json), tandis que la racine pilote l’ensemble du dépôt.
-
-### Turborepo
-
-Le projet utilise [**Turborepo**](https://turborepo.dev/) pour orchestrer les tâches du monorepo.
-
-Exemple :
+### 1. Cloner et installer
 
 ```bash
-npm run dev
+git clone <url-du-repo>
+cd webdev-esilv-starter
+cd server && npm install
+cd ../client && npm install
 ```
 
-Cette commande exécute :
+### 2. Configurer MongoDB
+
+Dans `mongo-init/init.js`, mets tes propres credentials à la place des miens :
+
+```js
+db.createUser({
+  user: 'tonuser',
+  pwd: 'tonmotdepasse',
+  roles: [{ role: 'readWrite', db: 'myapp' }]
+})
+```
+
+Lance MongoDB :
 
 ```bash
-turbo run dev --parallel
+docker-compose up -d
 ```
 
-Autrement dit, les scripts `dev` des workspaces sont lancés en parallèle.
-
-## Applications
-
-### Front-end : `client/`
-
-L’application front est basée sur :
-
-- [**Vue 3**](https://vuejs.org/) (version beta dans ce starter)
-- [**Vite**](https://vite.dev/) pour le bundling et le serveur de développement
-- [**Vue Router**](https://router.vuejs.org/) pour le routage
-- [**Pinia**](https://pinia.vuejs.org/) pour la gestion d’état
-- [**Vitest**](https://vitest.dev/) pour les tests unitaires
-- [**Playwright**](https://playwright.dev/) pour les tests end-to-end
-- [**ESLint**](https://eslint.org/), [**Oxlint**](https://oxc.rs/docs/guide/usage/linter) et [**Oxfmt**](https://oxc.rs/blog/2026-02-24-oxfmt-beta) pour la qualité et le formatage
-
-### Back-end : `server/`
-
-L’application back est actuellement basée sur :
-
-- [**Node.js**](https://nodejs.org/fr)
-- [**Fastify**](https://fastify.dev/) pour construire l’API HTTP
-
-Le serveur est lancé en mode développement avec :
+### 3. Configurer le backend
 
 ```bash
-node --watch src/index.js
+cp server/.env-example server/.env.development.local
 ```
 
-Le back est conçu pour être enrichi pendant le projet : routes, logique métier, persistance, authentification, validation, gestion d’erreurs, etc.
+Édite `server/.env.development.local` :
 
-## Prérequis
+```env
+MONGODB_URI=mongodb://tonuser:tonmotdepasse@localhost:35115/myapp
+JWT_SECRET=une-chaine-secrete-longue-et-random
+CLIENT_URL=http://localhost:5173
+APP_BASE_URL=http://localhost:3000
+```
 
-Prérequits recommandés :
-
-- **Node.js 24 ou plus récent**
-- **npm** compatible avec la version de Node installée
-
-Pourquoi Node 24+ :
-
-- pour travailler avec une version moderne et homogène sur tout le projet
-- pour éviter les écarts d’environnement entre machines
-- pour bénéficier d’un runtime récent côté front comme côté back
-
-Vérification :
+### 4. Lancer
 
 ```bash
-node -v
-npm -v
+# Terminal 1
+cd server && npm run dev
+
+# Terminal 2
+cd client && npm run dev
 ```
 
-## Installation
+L'appli tourne sur [http://localhost:5173](http://localhost:5173).
 
-Depuis la racine du projet :
+> **Note** : les données persistent tant que tu ne fais pas `docker-compose down -v`.
 
-```bash
-npm install
+## Déploiement
+
+- **Backend** : Render — configurer `MONGODB_URI` (Atlas), `JWT_SECRET`, `CLIENT_URL` (URL Netlify)
+- **Frontend** : Netlify — configurer `VITE_API_URL` (URL Render), ajouter un fichier `_redirects` avec `/* /index.html 200`
+
+## Structure
+
 ```
-
-Cette commande installe les dépendances du monorepo et des workspaces.
-
-## Lancement en développement
-
-Depuis la racine :
-
-```bash
-npm run dev
-```
-
-Cela lance les applications `client` et `server` en parallèle via Turborepo.
-
-Il est aussi possible de lancer une application individuellement depuis son dossier :
-
-```bash
-cd client
-npm run dev
-```
-
-```bash
-cd server
-npm run dev
-```
-
-## Ce qui est attendu
-
-Ce dépôt est un **starter**, pas une application terminée.
-
-Vous devez au minimum :
-
-- créer et remplir le fichier .env.development.local à partir de .env-example
-- implémenter tout ce qui est marqué `TODO`
-- compléter les routes, contrôleurs et services manquants
-- finaliser la logique métier côté back-end
-- structurer proprement les échanges entre front et back
-- ajouter les validations nécessaires
-- gérer correctement les erreurs
-- tester les comportements importants
-- modifier ce README.md pour enlever les instructions et ne garder que de la documentation de ce qui aura été fait
-
-Selon les consignes du module, vous pourrez aussi être amenés à :
-
-- implémenter l’authentification et l’autorisation
-- sécuriser les flux applicatifs
-- documenter vos choix techniques
-
-## Conseils de travail
-
-- Travaillez par petites étapes validées.
-- Ne laissez pas les `TODO` s’accumuler jusqu’à la fin.
-- Gardez une séparation claire entre front (`client`) et back (`server`).
-- Faites évoluer le projet de manière cohérente avec la structure du monorepo.
-
-## Structure du dépôt
-
-```text
-.
-├── client/            # application front-end
-├── server/            # application back-end
-├── mongo-init/        # fichier de démarrage du conteneur mongodb (optionnel)
-├── .github/           # configuration pour copilot (et éventuellement plus tard pour les GHA)
-├── .vscode/           # configuration VSCode spécifique à ce projet
-├── package.json       # racine du monorepo
-├── eslint.config.mjs  # configuration du linter
-├── CLAUDE.md          # instructions spécifiques pour Claude Code (inclus les fichiers de copilote)
-├── AGENTS.md          # instructions spécifiques pour d’autres agents IA (inclus les fichiers de copilote)
-├── .editorconfig      # configuration basique des fichiers pour l’éditeur
-└── turbo.json         # orchestration des tâches
+webdev-esilv-starter/
+├── client/                  # Frontend Vue.js
+│   └── src/
+│       ├── components/      # NavBar, SparkLine, ConfirmDialog
+│       ├── composables/     # useTheme (dark/light mode)
+│       ├── views/           # Dashboard, Portfolios, Markets, Actus, Auth...
+│       ├── stores/          # Pinia : auth, portfolio
+│       └── services/        # Appels CoinGecko
+├── server/                  # Backend Fastify
+│   └── src/
+│       ├── users/           # Auth + gestion utilisateurs + rôles admin
+│       ├── portfolios/      # CRUD portefeuilles et positions
+│       ├── actus/           # Proxy RSS actualités crypto
+│       └── plugins/         # JWT, Mongoose, Auth middleware
+├── mongo-init/              # Init MongoDB (créer ici ton utilisateur)
+└── docker-compose.yml       # MongoDB en conteneur
 ```
