@@ -118,4 +118,28 @@ html.dark .btn-show-more:hover {
 html.dark .article-img-placeholder {
   background: #16213e !important;
 }
+
+html.dark .holdings-table td,
+html.dark .holdings-table tbody tr {
+  color: #f1f5f9 !important;
+  border-color: rgba(255,255,255,0.06) !important;
+}
+
+html.dark .holdings-table {
+  background: #1a1a2e !important;
+}
+
+html.dark .symbol-badge {
+  background: #16213e !important;
+  color: #a5b4fc !important;
+}
+
+html.dark .holding-name,
+html.dark .no-data {
+  color: #475569 !important;
+}
+
+html.dark .value-cell {
+  color: #f1f5f9 !important;
+}
 </style>
