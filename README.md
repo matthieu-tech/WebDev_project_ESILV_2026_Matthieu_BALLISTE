@@ -1,6 +1,6 @@
 # CryptoFolio — Gestionnaire de portefeuille crypto
 
-Projet de fin d'année réalisé dans le cadre du cours de développement web à l'ESILV (4A FinTech). Application web complète de gestion de cryptomonnaies : suivi des investissements, performances en temps réel, et actualités crypto.
+Projet de Web Development dans le cadre du cours de développement web à l'ESILV (A4 FinTech). Application web complète de gestion de cryptomonnaies : suivi des investissements, performances en temps réel, et actualités crypto.
 
 ## Application en ligne
 
